@@ -7,7 +7,13 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+aws_access_key_id = os.getenv("aws_access_key_id")
+aws_secret_access_key = os.getenv("aws_secret_access_key")
+region_name = os.getenv("region_name")
 
 prompt_template = """
 
@@ -23,7 +29,10 @@ Question: {question}
 Assistant:"""
 
 # Bedrock client
-bedrock = boto3.client(service_name= "bedrock-runtime",region_name = "us-east-1")
+bedrock = boto3.client(service_name= "bedrock-runtime",
+                       aws_access_key_id = aws_access_key_id,
+                       aws_secret_access_key = aws_secret_access_key,
+                       region_name = region_name)
 
 # Get embedding model from bedrock
 bedrock_embedding = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1", client= bedrock)
@@ -33,9 +42,9 @@ def get_documents():
     loader = PyPDFDirectoryLoader("data")
     documents = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=300
-    )
+                        chunk_size=1000,
+                        chunk_overlap=300
+                    )
     docs = text_splitter.split_documents(documents)
     return docs
 
@@ -47,6 +56,9 @@ def get_vector_store(docs):
 def get_llm():
     llm = Bedrock(model_id = "mistral.mistral-7b-instruct-v0:2", client = bedrock)
     return llm
+
+
+
 
 PROMPT = PromptTemplate(
     template=prompt_template, input_variables=['context','question']
